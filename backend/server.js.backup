@@ -1,0 +1,75 @@
+require('dotenv').config();
+const express = require('express');
+const cors = require('cors');
+const { Pool } = require('pg');
+
+// Database connection
+const pool = new Pool({
+    user: process.env.DB_USER || 'postgres',
+    host: process.env.DB_HOST || 'localhost',
+    database: process.env.DB_NAME || 'mfm_tournament',
+    password: process.env.DB_PASSWORD || 'your_password',  // ⚠️ CHANGE THIS!
+    port: process.env.DB_PORT || 5432,
+});
+
+// Test database connection
+pool.connect((err, client, release) => {
+    if (err) {
+        console.error('❌ Database connection error:', err);
+    } else {
+        console.log('✅ Database connected successfully');
+        release();
+    }
+});
+
+// Import routes
+const authRoutes = require('./routes/auth');
+const playersRoutes = require('./routes/players');
+const teamsRoutes = require('./routes/teams');
+const adminRoutes = require('./routes/admin');
+const volunteersRoutes = require('./routes/volunteers');
+
+const app = express();
+
+// Make database available to all routes
+app.set('db', pool);
+
+// Middleware
+app.use(cors({
+    origin: '*',
+    credentials: true
+}));
+app.use(express.json());
+
+// Health check
+app.get('/health', (req, res) => {
+    res.json({
+        status: 'OK',
+        timestamp: new Date().toISOString(),
+        environment: process.env.NODE_ENV || 'development'
+    });
+});
+
+// Routes
+app.use(cors());
+app.use('/api/auth', authRoutes);
+app.use('/api/players', playersRoutes);
+app.use('/api/teams', teamsRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/volunteers', volunteersRoutes);
+
+// Error handling
+app.use((err, req, res, next) => {
+    console.error('Server error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+});
+
+// Start server
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log('===========================================');
+    console.log('MFM Region 1 Tournament API Server');
+    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`Server running on port ${PORT}`);
+    console.log('===========================================');
+});

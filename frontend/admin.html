@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MFM Tournament - Admin Panel</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-primary:hover:not(:disabled) {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        .btn-danger {
+            background: #f56565;
+            color: white;
+        }
+        
+        .btn-success {
+            background: #48bb78;
+            color: white;
+        }
+        
+        .teams-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        .teams-table th,
+        .teams-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .teams-table th {
+            background: #f7fafc;
+            font-weight: 600;
+            color: #2d3748;
+        }
+        
+        .teams-table tr:hover {
+            background: #f7fafc;
+        }
+        
+        .alert {
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        
+        .alert-success {
+            background: #c6f6d5;
+            border: 1px solid #48bb78;
+            color: #22543d;
+        }
+        
+        .alert-error {
+            background: #fed7d7;
+            border: 1px solid #f56565;
+            color: #742a2a;
+        }
+        
+        .password-display {
+            background: #fff5f5;
+            border: 2px solid #f56565;
+            padding: 20px;
+            border-radius: 5px;
+            margin-top: 20px;
+            font-family: monospace;
+        }
+        
+        .password-display strong {
+            font-size: 20px;
+            color: #c53030;
+        }
+        
+        .required::after {
+            content: ' *';
+            color: #f56565;
+        }
+        
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        #loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .status-message {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            display: none;
+        }
+
+        .status-message.error {
+            background: #fed7d7;
+            color: #742a2a;
+            display: block;
+        }
+
+        .status-message.success {
+            background: #c6f6d5;
+            color: #22543d;
+            display: block;
+        }
+
+        small {
+            color: #666;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>⚽ MFM Tournament - Admin Panel</h1>
+            <p style="color: #666;">Manage teams, captains, and tournament registration</p>
+        </div>
+        
+        <!-- Admin Login -->
+        <div class="card" id="login-section">
+            <h2>Admin Login</h2>
+            <div class="form-group">
+                <label class="required">Admin Password</label>
+                <input type="password" id="admin-password" placeholder="Enter admin password" 
+                       onkeypress="if(event.key==='Enter') handleLogin()">
+            </div>
+            <button class="btn btn-primary" onclick="handleLogin()" id="admin-login-btn">LOGIN</button>
+            <div id="login-status" class="status-message"></div>
+        </div>
+        
+        <!-- Admin Panel (hidden until login) -->
+        <div id="admin-panel" style="display: none;">
+            
+            <!-- Add New Team -->
+            <div class="card">
+                <h2>➕ Add New Team</h2>
+                
+                <div id="success-message" class="alert alert-success" style="display: none;"></div>
+                <div id="error-message" class="alert alert-error" style="display: none;"></div>
+                
+                <form id="team-form" onsubmit="handleCreateTeam(event)">
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label class="required">Team Code</label>
+                            <input type="text" id="teamCode" placeholder="e.g., TORONTO3" required 
+                                   pattern="[A-Z0-9]+" title="Uppercase letters and numbers only">
+                            <small>Uppercase letters/numbers only (e.g., TORONTO1, AJAX, DURHAM)</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="required">Team Name</label>
+                            <input type="text" id="teamName" placeholder="e.g., Toronto - Team 3" required>
+                        </div>
+                    </div>
+                    
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label class="required">Branch Name</label>
+                            <input type="text" id="branchName" placeholder="e.g., Toronto (West)" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="required">Captain Name</label>
+                            <input type="text" id="captainName" placeholder="e.g., Pastor John Smith" required>
+                        </div>
+                    </div>
+                    
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label class="required">Captain Email</label>
+                            <input type="email" id="captainEmail" placeholder="captain@example.com" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="required">Captain Phone</label>
+                            <input type="tel" id="captainPhone" placeholder="(416) 555-1234" required>
+                        </div>
+                    </div>
+                    
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label class="required">Pastor Name</label>
+                            <input type="text" id="pastorName" placeholder="Pastor name" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Primary Jersey Color</label>
+                            <input type="text" id="primaryJerseyColor" placeholder="e.g., Red, Blue, Green" value="Blue">
+                        </div>
+                    </div>
+                    
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>Jersey Color Code (Hex)</label>
+                            <input type="color" id="primaryJerseyHex" value="#0000ff">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Set Password (optional)</label>
+                            <input type="text" id="customPassword" placeholder="Leave blank for random password">
+                            <small>Leave empty to auto-generate. Use 'mfm2026' for default.</small>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary" id="create-team-btn">CREATE TEAM</button>
+                </form>
+                
+                <div id="password-display" class="password-display" style="display: none;">
+                    <p><strong>⚠️ SAVE THIS PASSWORD!</strong></p>
+                    <p>Team: <strong id="created-team-name"></strong></p>
+                    <p>Team Code: <strong id="created-team-code"></strong></p>
+                    <p>Temporary Password: <strong id="temp-password"></strong></p>
+                    <p style="margin-top: 10px; color: #666;">This password cannot be retrieved later. Captain should change it after first login.</p>
+                </div>
+            </div>
+            
+            <!-- Existing Teams -->
+            <div class="card">
+                <h2>📋 Existing Teams</h2>
+                <button class="btn btn-primary" onclick="loadTeams()" style="margin-bottom: 15px;">🔄 Refresh</button>
+                
+                <div id="loading">
+                    <div class="spinner"></div>
+                    <p>Loading teams...</p>
+                </div>
+                
+                <table class="teams-table" id="teams-table">
+                    <thead>
+                        <tr>
+                            <th>Team Code</th>
+                            <th>Team Name</th>
+                            <th>Captain</th>
+                            <th>Email</th>
+                            <th>Branch</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="teams-tbody">
+                        <tr>
+                            <td colspan="6" style="text-align: center; padding: 40px; color: #999;">
+                                Click "Refresh" to load teams
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const API_BASE = 'http://localhost:3000/api/admin';
+        let adminPassword = '';
+        
+        // Handle login
+        function handleLogin() {
+            const passwordInput = document.getElementById('admin-password');
+            const loginBtn = document.getElementById('admin-login-btn');
+            const statusDiv = document.getElementById('login-status');
+            
+            adminPassword = passwordInput.value.trim();
+            
+            console.log('Login attempt started');
+            
+            // Clear previous status
+            statusDiv.className = 'status-message';
+            statusDiv.textContent = '';
+            
+            if (!adminPassword) {
+                statusDiv.className = 'status-message error';
+                statusDiv.textContent = '❌ Please enter admin password';
+                return;
+            }
+            
+            // Disable button
+            loginBtn.disabled = true;
+            loginBtn.textContent = 'CHECKING...';
+            statusDiv.className = 'status-message';
+            statusDiv.style.display = 'block';
+            statusDiv.style.background = '#e6f7ff';
+            statusDiv.style.color = '#0066cc';
+            statusDiv.textContent = '🔄 Connecting to server...';
+            
+            // Try to load teams
+            loadTeams()
+                .then(() => {
+                    console.log('Login successful!');
+                })
+                .catch(error => {
+                    console.error('Login error:', error);
+                    loginBtn.disabled = false;
+                    loginBtn.textContent = 'LOGIN';
+                    statusDiv.className = 'status-message error';
+                    statusDiv.textContent = '❌ ' + error.message;
+                });
+        }
+        
+        // Load teams from backend
+        async function loadTeams() {
+            const loading = document.getElementById('loading');
+            const tbody = document.getElementById('teams-tbody');
+            
+            console.log('Loading teams...');
+            console.log('API URL:', `${API_BASE}/teams`);
+            console.log('Admin password set:', adminPassword ? 'Yes' : 'No');
+            
+            loading.style.display = 'block';
+            
+            try {
+                const response = await fetch(`${API_BASE}/teams`, {
+                    method: 'GET',
+                    headers: {
+                        'X-Admin-Password': adminPassword
+                    }
+                });
+                
+                console.log('Response status:', response.status);
+                
+                if (response.status === 401) {
+                    throw new Error('Invalid admin password. Default is: mfm_admin_2026');
+                }
+                
+                if (!response.ok) {
+                    throw new Error(`Server error: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('Teams received:', data.teams ? data.teams.length : 0);
+                
+                if (data.success) {
+                    // Hide login, show admin panel
+                    document.getElementById('login-section').style.display = 'none';
+                    document.getElementById('admin-panel').style.display = 'block';
+                    
+                    // Populate table
+                    tbody.innerHTML = '';
+                    
+                    if (data.teams.length === 0) {
+                        tbody.innerHTML = `
+                            <tr>
+                                <td colspan="6" style="text-align: center; padding: 40px; color: #999;">
+                                    No teams yet. Create one above!
+                                </td>
+                            </tr>
+                        `;
+                    } else {
+                        data.teams.forEach(team => {
+                            tbody.innerHTML += `
+                                <tr>
+                                    <td><strong>${team.team_code}</strong></td>
+                                    <td>${team.team_name}</td>
+                                    <td>${team.captain_name}</td>
+                                    <td>${team.captain_email}</td>
+                                    <td>${team.branch_name}</td>
+                                    <td>
+                                        <button class="btn btn-success" style="padding: 6px 12px; margin-right: 5px;" 
+                                                onclick="resetPassword('${team.team_code}')">
+                                            Reset Password
+                                        </button>
+                                        <button class="btn btn-danger" style="padding: 6px 12px;" 
+                                                onclick="deleteTeam('${team.team_code}', '${team.team_name}')">
+                                            Delete
+                                        </button>
+                                    </td>
+                                </tr>
+                            `;
+                        });
+                    }
+                } else {
+                    throw new Error('Invalid response from server');
+                }
+            } catch (error) {
+                console.error('Fetch error:', error);
+                
+                // More specific error messages
+                let errorMsg = error.message;
+                if (error.message.includes('Failed to fetch')) {
+                    errorMsg = 'Cannot connect to backend server. Make sure it\'s running on port 3000!';
+                }
+                
+                throw new Error(errorMsg);
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+        
+        // Handle team creation
+        async function handleCreateTeam(event) {
+            event.preventDefault();
+            
+            const submitBtn = document.getElementById('create-team-btn');
+            const successDiv = document.getElementById('success-message');
+            const errorDiv = document.getElementById('error-message');
+            const passwordDisplay = document.getElementById('password-display');
+            
+            // Hide previous messages
+            successDiv.style.display = 'none';
+            errorDiv.style.display = 'none';
+            passwordDisplay.style.display = 'none';
+            
+            const formData = {
+                teamCode: document.getElementById('teamCode').value.toUpperCase(),
+                teamName: document.getElementById('teamName').value,
+                branchName: document.getElementById('branchName').value,
+                captainName: document.getElementById('captainName').value,
+                captainEmail: document.getElementById('captainEmail').value,
+                captainPhone: document.getElementById('captainPhone').value,
+                pastorName: document.getElementById('pastorName').value,
+                primaryJerseyColor: document.getElementById('primaryJerseyColor').value,
+                primaryJerseyHex: document.getElementById('primaryJerseyHex').value,
+                customPassword: document.getElementById('customPassword').value
+            };
+            
+            console.log('Creating team:', formData);
+            
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'CREATING...';
+            
+            try {
+                const response = await fetch(`${API_BASE}/teams/create`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Admin-Password': adminPassword
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to create team');
+                }
+                
+                if (data.success) {
+                    // Show success
+                    successDiv.textContent = '✅ Team created successfully!';
+                    successDiv.style.display = 'block';
+                    
+                    // Show password
+                    document.getElementById('created-team-name').textContent = data.team.team_name;
+                    document.getElementById('created-team-code').textContent = data.team.team_code;
+                    document.getElementById('temp-password').textContent = data.temporaryPassword;
+                    passwordDisplay.style.display = 'block';
+                    
+                    // Reset form
+                    document.getElementById('team-form').reset();
+                    document.getElementById('primaryJerseyHex').value = '#0000ff';
+                    document.getElementById('primaryJerseyColor').value = 'Blue';
+                    
+                    // Reload teams
+                    await loadTeams();
+                    
+                    // Scroll to password display
+                    passwordDisplay.scrollIntoView({ behavior: 'smooth' });
+                } else {
+                    throw new Error(data.error || 'Unknown error');
+                }
+            } catch (error) {
+                console.error('Create team error:', error);
+                errorDiv.textContent = '❌ ' + error.message;
+                errorDiv.style.display = 'block';
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'CREATE TEAM';
+            }
+        }
+        
+        // Reset password
+        async function resetPassword(teamCode) {
+            if (!confirm(`Reset password for team ${teamCode}?\n\nA new random password will be generated.`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/teams/${teamCode}/reset-password`, {
+                    method: 'POST',
+                    headers: {
+                        'X-Admin-Password': adminPassword
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to reset password');
+                }
+                
+                if (data.success) {
+                    alert(`✅ Password Reset Successful!\n\nTeam: ${teamCode}\nNew Password: ${data.newPassword}\n\n⚠️ SAVE THIS PASSWORD - It cannot be retrieved later!`);
+                } else {
+                    throw new Error(data.error);
+                }
+            } catch (error) {
+                console.error('Reset password error:', error);
+                alert('❌ Failed to reset password: ' + error.message);
+            }
+        }
+        
+        // Delete team
+        async function deleteTeam(teamCode, teamName) {
+            if (!confirm(`⚠️ DELETE TEAM?\n\nTeam: ${teamName} (${teamCode})\n\nThis will delete all players and data for this team!\n\nAre you sure?`)) {
+                return;
+            }
+            
+            if (!confirm('Really delete? This cannot be undone!')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/teams/${teamCode}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-Admin-Password': adminPassword
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to delete team');
+                }
+                
+                if (data.success) {
+                    alert('✅ ' + data.message);
+                    await loadTeams();
+                } else {
+                    throw new Error(data.error);
+                }
+            } catch (error) {
+                console.error('Delete team error:', error);
+                alert('❌ Failed to delete team: ' + error.message);
+            }
+        }
+        
+        // Debug: Log when page loads
+        console.log('Admin panel loaded');
+        console.log('API Base URL:', API_BASE);
+    </script>
+</body>
+</html>
