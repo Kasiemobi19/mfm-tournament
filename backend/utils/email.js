@@ -1,140 +1,147 @@
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 
-const transporter = nodemailer.createTransport({
-    host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-    port: process.env.EMAIL_PORT || 587,
-    secure: false,
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASSWORD
-    }
-});
+const resend = new Resend(process.env.RESEND_API_KEY);
 
-async function sendEmail(emailData) {
+// Sender address — must be a verified domain in Resend, OR use onboarding@resend.dev for testing
+const FROM_ADDRESS = process.env.EMAIL_FROM || 'MFM Tournament <onboarding@resend.dev>';
+
+// ─── PLAYER CONFIRMATION EMAIL ────────────────────────────────────────────────
+
+async function sendConfirmationEmail({
+    playerName,
+    email,
+    confirmationNumber,
+    teamName,
+    tournamentDate = 'Friday, July 11, 2026',
+    tournamentTime = '1:00 PM'
+}) {
     try {
-        let htmlContent;
-        let subject;
-        
-        // Check if this is a volunteer email or player email
-        if (emailData.volunteerName) {
-            // VOLUNTEER EMAIL
-            subject = emailData.subject || '✅ MFM Tournament - Volunteer Registration Confirmed';
-            htmlContent = `
+        const { data, error } = await resend.emails.send({
+            from: FROM_ADDRESS,
+            to: email,
+            subject: `✅ MFM Region 1 Tournament — Registration Confirmed (#${confirmationNumber})`,
+            html: `
                 <!DOCTYPE html>
                 <html>
-                <head>
-                    <style>
-                        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-                        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-                        .header { background: #1a472a; color: white; padding: 20px; text-align: center; }
-                        .content { background: #f9f9f9; padding: 30px; }
-                        .confirmation-box { background: white; border-left: 4px solid #2ecc71; padding: 20px; margin: 20px 0; }
-                        .info-row { margin: 10px 0; }
-                        .label { font-weight: bold; color: #1a472a; }
-                    </style>
-                </head>
-                <body>
-                    <div class="container">
-                        <div class="header">
-                            <h1>⚽ MFM Region 1 Soccer Tournament</h1>
-                            <p>Volunteer Registration Confirmed</p>
+                <body style="margin:0; padding:0; font-family: Arial, sans-serif; background:#f4f4f4;">
+                    <div style="max-width:600px; margin:0 auto; background:#fff; border-radius:8px; overflow:hidden; margin-top:20px;">
+                        <div style="background:#1a5276; padding:24px; text-align:center;">
+                            <h1 style="color:#fff; margin:0; font-size:22px;">⚽ MFM Region 1 Soccer Tournament</h1>
+                            <p style="color:#aed6f1; margin:6px 0 0;">Player Registration Confirmed</p>
                         </div>
-                        <div class="content">
-                            <h2>Thank You for Volunteering!</h2>
-                            <p>Dear ${emailData.volunteerName},</p>
-                            <p>Your volunteer registration has been confirmed. We're grateful for your service!</p>
-                            
-                            <div class="confirmation-box">
-                                <div class="info-row">
-                                    <span class="label">Confirmation Number:</span> ${emailData.confirmationNumber}
-                                </div>
-                                <div class="info-row">
-                                    <span class="label">Branch:</span> ${emailData.branch}
-                                </div>
-                                <div class="info-row">
-                                    <span class="label">Roles:</span> ${emailData.roles}
-                                </div>
-                                <div class="info-row">
-                                    <span class="label">Tournament Date:</span> ${emailData.tournamentDate}
-                                </div>
-                                <div class="info-row">
-                                    <span class="label">Time:</span> ${emailData.tournamentTime}
-                                </div>
+                        <div style="padding:30px;">
+                            <h2 style="color:#1a5276;">Registration Successful! 🎉</h2>
+                            <p>Dear <strong>${playerName}</strong>,</p>
+                            <p>You're officially registered for the MFM Region 1 Soccer Tournament. See your details below.</p>
+
+                            <div style="background:#eaf2ff; border-left:4px solid #1a5276; padding:16px; border-radius:4px; margin:20px 0;">
+                                <p style="margin:4px 0;"><strong>Confirmation #:</strong> ${confirmationNumber}</p>
+                                <p style="margin:4px 0;"><strong>Team:</strong> ${teamName}</p>
+                                <p style="margin:4px 0;"><strong>Date:</strong> ${tournamentDate}</p>
+                                <p style="margin:4px 0;"><strong>Kick-off:</strong> ${tournamentTime}</p>
                             </div>
-                            
-                            <h3>Your Availability:</h3>
+
+                            <h3 style="color:#1a5276;">What's Next?</h3>
                             <ul>
-                                <li>Setup (day before): <strong>${emailData.availableSetup}</strong></li>
-                                <li>Tournament day: <strong>${emailData.availableTournament}</strong></li>
-                                <li>Cleanup (after): <strong>${emailData.availableCleanup}</strong></li>
+                                <li>Attend team practices as scheduled by your captain</li>
+                                <li>Arrive at the venue <strong>30 minutes</strong> before kick-off</li>
+                                <li>Bring valid ID and your confirmation number on tournament day</li>
                             </ul>
-                            
-                            <p>You will receive more details about volunteer assignments closer to the tournament date.</p>
-                            
-                            <p>Thank you for your commitment to serving!</p>
-                            
-                            <p style="margin-top: 30px; color: #666; font-size: 14px;">
-                                If you have any questions, please contact the tournament coordinator.
-                            </p>
+
+                            <p>We look forward to seeing you on the pitch!</p>
+                            <p><strong>— MFM Region 1 Tournament Committee</strong></p>
+                        </div>
+                        <div style="background:#f4f4f4; padding:16px; text-align:center; font-size:12px; color:#888;">
+                            This is an automated confirmation. Please do not reply to this email.
                         </div>
                     </div>
                 </body>
                 </html>
-            `;
-        } else {
-            // PLAYER EMAIL
-            subject = emailData.subject || '⚽ MFM Tournament - Player Registration Confirmed';
-            htmlContent = `
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <style>
-                        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-                        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-                        .header { background: #1a472a; color: white; padding: 20px; text-align: center; }
-                        .content { background: #f9f9f9; padding: 30px; }
-                        .confirmation-box { background: white; border-left: 4px solid #2ecc71; padding: 20px; margin: 20px 0; }
-                    </style>
-                </head>
-                <body>
-                    <div class="container">
-                        <div class="header">
-                            <h1>⚽ MFM Region 1 Soccer Tournament</h1>
-                            <p>Player Registration Confirmed</p>
-                        </div>
-                        <div class="content">
-                            <h2>Registration Successful!</h2>
-                            <p>Dear ${emailData.playerName},</p>
-                            <p>Your registration has been confirmed.</p>
-                            
-                            <div class="confirmation-box">
-                                <strong>Confirmation Number:</strong> ${emailData.confirmationNumber}<br>
-                                <strong>Team:</strong> ${emailData.teamName}<br>
-                                <strong>Tournament Date:</strong> ${emailData.tournamentDate}<br>
-                                <strong>Time:</strong> ${emailData.tournamentTime}
-                            </div>
-                            
-                            <p>We look forward to seeing you at the tournament!</p>
-                        </div>
-                    </div>
-                </body>
-                </html>
-            `;
-        }
-        
-        const info = await transporter.sendMail({
-            from: `"MFM Tournament" <${process.env.EMAIL_USER}>`,
-            to: emailData.to,
-            subject: subject,
-            html: htmlContent
+            `
         });
-        
-        console.log('📧 Email sent:', info.messageId);
-        return info;
-    } catch (error) {
-        console.error('❌ Email sending failed:', error);
-        throw error;
+
+        if (error) {
+            console.error('Resend error (player):', error);
+            throw new Error(error.message);
+        }
+
+        console.log('Player confirmation sent:', data.id);
+        return { success: true, messageId: data.id };
+
+    } catch (err) {
+        console.error('sendConfirmationEmail failed:', err);
+        throw err;
     }
 }
 
-module.exports = sendEmail;
+// ─── VOLUNTEER CONFIRMATION EMAIL ─────────────────────────────────────────────
+
+async function sendVolunteerRegistrationEmail({
+    firstName,
+    lastName,
+    email,
+    phone,
+    branch,
+    roles = [],
+    confirmationNumber,
+    tournamentDate = 'Friday, July 11, 2026',
+    tournamentTime = '1:00 PM'
+}) {
+    try {
+        const { data, error } = await resend.emails.send({
+            from: FROM_ADDRESS,
+            to: email,
+            subject: `✅ MFM Region 1 Tournament — Volunteer Registration Confirmed (#${confirmationNumber})`,
+            html: `
+                <!DOCTYPE html>
+                <html>
+                <body style="margin:0; padding:0; font-family: Arial, sans-serif; background:#f4f4f4;">
+                    <div style="max-width:600px; margin:0 auto; background:#fff; border-radius:8px; overflow:hidden; margin-top:20px;">
+                        <div style="background:#1a5276; padding:24px; text-align:center;">
+                            <h1 style="color:#fff; margin:0; font-size:22px;">⚽ MFM Region 1 Soccer Tournament</h1>
+                            <p style="color:#aed6f1; margin:6px 0 0;">Volunteer Registration Confirmed</p>
+                        </div>
+                        <div style="padding:30px;">
+                            <h2 style="color:#1a5276;">Thank You for Volunteering! 🙌</h2>
+                            <p>Dear <strong>${firstName} ${lastName}</strong>,</p>
+                            <p>Your volunteer registration has been received. Here are your details:</p>
+
+                            <div style="background:#eaf2ff; border-left:4px solid #1a5276; padding:16px; border-radius:4px; margin:20px 0;">
+                                <p style="margin:4px 0;"><strong>Confirmation #:</strong> ${confirmationNumber}</p>
+                                <p style="margin:4px 0;"><strong>Branch:</strong> ${branch}</p>
+                                <p style="margin:4px 0;"><strong>Role(s):</strong> ${roles.join(', ')}</p>
+                                <p style="margin:4px 0;"><strong>Phone:</strong> ${phone}</p>
+                                <p style="margin:4px 0;"><strong>Date:</strong> ${tournamentDate}</p>
+                                <p style="margin:4px 0;"><strong>Time:</strong> ${tournamentTime}</p>
+                            </div>
+
+                            <p>Your assignment will be confirmed by the tournament coordinator closer to the date.</p>
+                            <p><strong>— MFM Region 1 Tournament Committee</strong></p>
+                        </div>
+                        <div style="background:#f4f4f4; padding:16px; text-align:center; font-size:12px; color:#888;">
+                            This is an automated confirmation. Please do not reply to this email.
+                        </div>
+                    </div>
+                </body>
+                </html>
+            `
+        });
+
+        if (error) {
+            console.error('Resend error (volunteer):', error);
+            throw new Error(error.message);
+        }
+
+        console.log('Volunteer confirmation sent:', data.id);
+        return { success: true, messageId: data.id };
+
+    } catch (err) {
+        console.error('sendVolunteerRegistrationEmail failed:', err);
+        throw err;
+    }
+}
+
+module.exports = {
+    sendConfirmationEmail,
+    sendVolunteerRegistrationEmail
+};
