@@ -1,4 +1,4 @@
-const sendEmail = require('../utils/email');
+const { sendConfirmationEmail } = require('../utils/email');
 const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
@@ -119,9 +119,9 @@ const teamResult = await db.query(
 const team = teamResult.rows[0];
 
 // Send registration email
-await sendEmail({
-    to: email,
+await sendConfirmationEmail({
     playerName: `${firstName} ${lastName}`,
+    email: email,
     confirmationNumber: confirmationNumber,
     teamName: team.team_name,
     tournamentDate: 'Friday, July 11, 2026',

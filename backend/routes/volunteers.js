@@ -1,4 +1,4 @@
-const sendEmail = require('../utils/email');
+const { sendVolunteerRegistrationEmail } = require('../utils/email');
 const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
@@ -51,19 +51,18 @@ router.post('/register', async (req, res) => {
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'pending') RETURNING *`,
             [firstName, lastName, email, phone, branch, roles, experience || '', confirmationNumber]
         );
-        
+
         // Send confirmation email
-        await sendEmail({
-            to: email,
-            volunteerName: `${firstName} ${lastName}`,
-            confirmationNumber: confirmationNumber,
-            branch: branch,
-            roles: Array.isArray(roles) ? roles.join(', ') : roles,
+        await sendVolunteerRegistrationEmail({
+            firstName,
+            lastName,
+            email,
+            phone,
+            branch,
+            roles: Array.isArray(roles) ? roles : [roles],
+            confirmationNumber,
             tournamentDate: 'Friday, July 11, 2026',
-            tournamentTime: '2:00 PM',
-            availableSetup: availableSetup ? 'Yes' : 'No',
-            availableTournament: availableTournament ? 'Yes' : 'No',
-            availableCleanup: availableCleanup ? 'Yes' : 'No'
+            tournamentTime: '2:00 PM'
         });
         
         console.log('✅ Volunteer registered and email sent');
@@ -154,18 +153,16 @@ router.put('/:volunteerId/confirm', authenticateToken, async (req, res) => {
         const volunteer = result.rows[0];
         
         // Send confirmation email
-        await sendEmail({
-            to: volunteer.email,
-            subject: '✅ MFM Tournament - Volunteer Assignment Confirmed',
-            volunteerName: `${volunteer.first_name} ${volunteer.last_name}`,
-            confirmationNumber: volunteer.confirmation_number,
+        await sendVolunteerRegistrationEmail({
+            firstName: volunteer.first_name,
+            lastName: volunteer.last_name,
+            email: volunteer.email,
+            phone: volunteer.phone,
             branch: volunteer.branch,
-            roles: volunteer.roles.join(', '),
+            roles: Array.isArray(volunteer.roles) ? volunteer.roles : [volunteer.roles],
+            confirmationNumber: volunteer.confirmation_number,
             tournamentDate: 'Friday, July 11, 2026',
-            tournamentTime: '1:00 PM',
-            availableSetup: 'Confirmed',
-            availableTournament: 'Confirmed',
-            availableCleanup: 'Confirmed'
+            tournamentTime: '1:00 PM'
         });
         
         console.log('✅ Volunteer confirmed and email sent');
@@ -176,6 +173,7 @@ router.put('/:volunteerId/confirm', authenticateToken, async (req, res) => {
         res.status(500).json({ success: false, error: error.message });
     }
 });
+
 // DELETE /api/volunteers/:volunteerId - Remove volunteer
 router.delete('/:volunteerId', authenticateToken, async (req, res) => {
     try {
